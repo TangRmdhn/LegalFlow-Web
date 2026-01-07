@@ -8,7 +8,10 @@ export async function sendMessage(message: string, threadId: string): Promise<Ch
     const id = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
     try {
-        const res = await fetch("https://samsas-legal-flow.hf.space/api/v1/chat", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+        const res = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
