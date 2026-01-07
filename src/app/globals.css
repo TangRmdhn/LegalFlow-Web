@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-legal-bg: #F9F7F2;
+  --color-legal-primary: #6D4C41;
+  /* Deep Leather Brown */
+  --color-legal-gold: #D4AF37;
+  /* Muted Gold */
+  --color-legal-text: #1A1A1A;
+  /* Dark Charcoal */
+  --color-legal-surface: #FFFFFF;
+}
+
+:root {
+  --background: var(--color-legal-bg);
+  --foreground: var(--color-legal-text);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
