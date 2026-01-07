@@ -21,6 +21,21 @@ export async function sendMessage(message: string, threadId: string): Promise<Ch
 
         if (!res.ok) {
             const errorText = await res.text();
+
+            // Handle Rate Limit specifically
+            if (res.status === 429) {
+                // Try to parse JSON body for specific message if possible, or use default
+                let detail = "Daily limit reached.";
+                try {
+                    const jsonError = JSON.parse(errorText);
+                    if (jsonError.detail) detail = jsonError.detail;
+                } catch (e) { /* ignore */ }
+
+                const error = new Error(detail);
+                (error as any).status = 429; // Attach status to error object
+                throw error;
+            }
+
             throw new Error(`API Error: ${res.status} ${errorText}`);
         }
 

@@ -19,6 +19,7 @@ export default function ChatInterface() {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingStep, setLoadingStep] = useState(0);
     const [threadId, setThreadId] = useState("");
+    const [isRateLimited, setIsRateLimited] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -37,7 +38,7 @@ export default function ChatInterface() {
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading]);
+    }, [messages, isLoading, isRateLimited]);
 
     // Loading Step Cycler
     useEffect(() => {
@@ -52,7 +53,7 @@ export default function ChatInterface() {
     }, [isLoading]);
 
     const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
+        if (!input.trim() || isLoading || isRateLimited) return;
 
         const userMsg = input.trim();
         setInput("");
@@ -66,8 +67,12 @@ export default function ChatInterface() {
                 setThreadId(data.thread_id);
                 localStorage.setItem("legalflow_thread_id", data.thread_id);
             }
-        } catch (error) {
-            setMessages((prev) => [...prev, { role: "ai", content: "⚠️ **Connection Error**: Unable to connect to LegalFlow Agent. Please ensure your query is specific and try again." }]);
+        } catch (error: any) {
+            if (error.status === 429) {
+                setIsRateLimited(true);
+            } else {
+                setMessages((prev) => [...prev, { role: "ai", content: "⚠️ **Connection Error**: Unable to connect to LegalFlow Agent. Please ensure your query is specific and try again." }]);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -121,6 +126,30 @@ export default function ChatInterface() {
                         </div>
                     </div>
                 )}
+
+                {/* Rate Limit Alert Card */}
+                {isRateLimited && (
+                    <div className="mx-auto max-w-lg mt-8 p-6 rounded-xl border border-amber-200 bg-amber-50 shadow-lg animate-in fade-in slide-in-from-bottom-5 duration-500">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-amber-100 rounded-lg shrink-0">
+                                <AlertCircle className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-base font-bold text-amber-900 leading-tight">
+                                    Daily Compliance Check Limit Reached
+                                </h3>
+                                <p className="text-sm text-amber-800/80 leading-relaxed">
+                                    To ensure high-quality analysis for all users, we limit daily interactions. You have reached your quota for today. Please return tomorrow for more compliance validation.
+                                </p>
+                                <div className="pt-2 flex items-center gap-2 text-xs font-medium text-amber-700/60 uppercase tracking-wide">
+                                    <Ban className="h-3 w-3" />
+                                    Quota resets daily at 00:00 server time
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div ref={messagesEndRef} />
             </div>
 
@@ -136,12 +165,18 @@ export default function ChatInterface() {
                                 handleSend();
                             }
                         }}
-                        placeholder="Describe your software feature (e.g., 'I am building a fintech app with facial recognition...')"
-                        className="flex-1 min-h-[56px] max-h-[200px] resize-none rounded-lg border border-legal-text/20 p-4 text-legal-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-legal-primary/20 focus:border-legal-primary transition-all bg-gray-50/50 text-sm font-medium"
+                        disabled={isLoading || isRateLimited}
+                        placeholder={isRateLimited ? "Limit reached. Please try again tomorrow." : "Describe your software feature (e.g., 'I am building a fintech app with facial recognition...')"}
+                        className={cn(
+                            "flex-1 min-h-[56px] max-h-[200px] resize-none rounded-lg border p-4 text-legal-text focus:outline-none focus:ring-2 transition-all text-sm font-medium",
+                            isRateLimited
+                                ? "bg-gray-100 border-gray-200 text-gray-400 placeholder:text-gray-400 cursor-not-allowed"
+                                : "bg-gray-50/50 border-legal-text/20 placeholder:text-gray-400 focus:ring-legal-primary/20 focus:border-legal-primary"
+                        )}
                     />
                     <button
                         onClick={handleSend}
-                        disabled={!input.trim() || isLoading}
+                        disabled={!input.trim() || isLoading || isRateLimited}
                         className="h-[56px] px-6 flex items-center justify-center rounded-lg bg-legal-primary text-white transition-all hover:bg-[#5D4037] hover:shadow-lg hover:shadow-legal-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
                     >
                         {isLoading ? (
